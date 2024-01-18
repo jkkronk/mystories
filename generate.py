@@ -7,6 +7,8 @@ from PIL import ImageDraw, ImageFont
 from pydantic import BaseModel, Field
 import json
 
+WORDS_IN_CHAPTER = 2000
+
 
 class Outline(BaseModel):
     title: str = Field(..., description="Der Titel der Geschichte")
@@ -16,8 +18,7 @@ class Outline(BaseModel):
 
 
 def calc_num_chapters(words):
-    # 2000 words per chapter
-    return words // 2000
+    return words // WORDS_IN_CHAPTER
 
 
 def story_outline(story, num_words, language_level):
@@ -36,9 +37,9 @@ def story_outline(story, num_words, language_level):
              "captures the essence of the story. This description will be used to create the cover art of the book." \
              "The story should have " + str(num_chapters) + " chapters. Each chapter should be approximately " + \
              str(words_per_chapter) + " words long. The story should be about " + story + ". The story should be " \
-             "written for people learning german in " + language_level + " level." \
+                                                                                          "written for people learning german in " + language_level + " level." \
  \
-    # Sending request to OpenAI GPT-4
+        # Sending request to OpenAI GPT-4
     client = instructor.patch(OpenAI())
     outline: Outline = client.chat.completions.create(
         model="gpt-4",
@@ -61,10 +62,12 @@ class Chapter(BaseModel):
 
 def write_chapter(content, level_of_language):
     prompt = (
-            "Write a chapter in German based on the following outline: '" + content + "'. " +
-            "The chapter should be engaging and approximately 1000 words long, suitable for a language level of '" +
-            level_of_language + "'. " + "Include a mix of dialogue, description, and action to bring the story to "
-                                        "life. " + "Also, provide a detailed image prompt for this chapter that captures a key moment or theme. " +
+            "Write a chapter in German based on the following outline: " + content + ". " +
+            "The chapter should be engaging and approximately " + str(WORDS_IN_CHAPTER) + " words long, suitable for a "
+                                                                                          "language level of " +
+            level_of_language + ". " + "Include a mix of dialogue, description, and action to bring the story to "
+                                       "life. " + "Also, provide a detailed image prompt for this chapter that "
+                                                  "captures a key moment or theme. " +
             "Lastly, list any challenging or advanced German words used in the chapter and explain them to help "
             "readers expand their vocabulary. The hard challenging or advanced words should be highligthed in the "
             "chapter by using the following format: <b>hard word</b>.")

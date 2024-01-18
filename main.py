@@ -14,9 +14,9 @@ def main():
     args = parser.parse_args()
 
     print("------------Generate Story Outline------------")
-    #story = generate.story_outline(args.plot, args.length, args.language_level)
-    #generate.save_to_file(story, args.outpath + "story.json")
-    story = generate.load_from_file(generate.Outline, args.outpath + "story.json")
+    story = generate.story_outline(args.plot, args.length, args.language_level)
+    generate.save_to_file(story, args.outpath + "story.json")
+    #story = generate.load_from_file(generate.Outline, args.outpath + "story.json")
 
     print("Title: " + story.title)
     print("Short Summary: " + story.short_summary)
@@ -31,7 +31,7 @@ def main():
     for idx, chapter_outline in enumerate(story.chapter_outlines):
         print(f"------------Generate Chapter {idx}------------")
         chapter = generate.write_chapter(chapter_outline, args.language_level)
-        generate.save_to_file(chapter, args.outpath + "chapter{idx}.json")
+        generate.save_to_file(chapter, args.outpath + f"chapter{idx}.json")
         #chapter = generate.load_from_file(generate.Chapter, args.outpath + f"chapter{idx}.json")
         chapters.append(chapter)
 
@@ -39,7 +39,7 @@ def main():
         print("Content: " + chapter.content)
         print("Hard Words: " + str(chapter.hard_words))
         image = generate.create_image(chapter.chapter_image_prompt)
-        image.save(args.outpath + "{idx}.png")
+        image.save(args.outpath + f"{idx}.png")
         #image = PILImage.open(args.outpath + f"{idx}.png")
         chapter_images.append(image)
 
