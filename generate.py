@@ -7,7 +7,8 @@ from PIL import ImageDraw, ImageFont
 from pydantic import BaseModel, Field
 import json
 
-WORDS_IN_CHAPTER = 3000
+CHARS_IN_CHAPTER = 10000
+OUTPUT_CHAR_PER_PROMPT = 3000
 
 
 class Outline(BaseModel):
@@ -17,14 +18,7 @@ class Outline(BaseModel):
     cover_image_prompt: str = Field(..., description="Aufforderung zur Erstellung des Titelbildes")
 
 
-def calc_num_chapters(words):
-    return words // WORDS_IN_CHAPTER
-
-
-def story_outline(story, num_words, language_level):
-    num_chapters = calc_num_chapters(num_words)
-    words_per_chapter = num_words // num_chapters
-
+def story_outline(story, num_chapters, language_level):
     prompt = "Please create a novel story outline in German using the 'Outline' class structure. The story should " \
              "be captivating and suitable for a broad audience. The story should be played over one or two days." \
              "Make sure to include:" \
@@ -36,9 +30,8 @@ def story_outline(story, num_words, language_level):
              "main plot, characters, and the overall theme. " \
              "Cover Image Prompt ('cover_image_prompt'): Provide a detailed description for an image prompt that " \
              "captures the essence of the story. This description will be used to create the cover art of the book." \
-             "The story should have " + str(num_chapters) + " chapters. Each chapter should be approximately " + \
-             str(words_per_chapter) + " words long. The story should be about " + story + ". The story should be " \
-             "written for people learning german in " + language_level + " level."
+             "The story should have " + str(num_chapters) + " chapters. The story should be about " + story + "" \
+                                                                                                              "The story should be written for people learning german in " + language_level + " level."
 
     # Sending request to OpenAI GPT-4
     client = instructor.patch(OpenAI())
@@ -54,33 +47,83 @@ def story_outline(story, num_words, language_level):
     return outline
 
 
-class Chapter(BaseModel):
+class ChapterContent(BaseModel):
     title: str = Field(..., description="Der Titel des Kapitels")
     content: str = Field(..., description="Der Inhalt des Kapitels in html format")
+
+
+class ChapterMisc(BaseModel):
+    title: str = Field(..., description="Der Titel des Kapitels")
     chapter_image_prompt: str = Field(..., description="Aufforderung zur Erstellung des Kapitelbildes")
     hard_words: list[str] = Field(..., description="Die schwierigen Wörter des Kapitels und ihre Erläuterung.")
 
 
+class Chapter(BaseModel):
+    title: str = Field(..., description="Der Titel des Kapitels")
+    chapter_image_prompt: str = Field(..., description="Aufforderung zur Erstellung des Kapitelbildes")
+    hard_words: list[str] = Field(..., description="Die 15 schwierigsten Wörter des Kapitels und ihre Erläuterung.")
+    content: str = Field(..., description="Der Inhalt des Kapitels in html format")
+
+
 def write_chapter(content, level_of_language):
+    chapter_text = ""
     prompt = (
-            "Write a chapter in German based on the following outline: " + content + ". " +
-            "The chapter should be engaging and approximately " + str(WORDS_IN_CHAPTER) + " words long, suitable for a "
-            "language level of " + level_of_language + ". " + "Include a mix of dialogue, description, and action to "
-            "bring the story to life. " + "Also, provide a detailed image prompt for this chapter that captures a "
-            "key moment or theme. Lastly, list any challenging or advanced German words used in the chapter and "
-            "explain them to help readers expand their vocabulary. The hard challenging or advanced words should be "
-            "highligthed in the chapter by using the following format: <b>hard word</b>.")
+                "Write a chapter in German based on the following outline: " + content + ". " +
+                "The book you are writing is for people learning German at the " + level_of_language + " level. " +
+                "Hence, you should use words and grammar so the reader understands and also that helps the reader " +
+                "improve their german. The chapter " +
+                "should be engaging and approximately " + str(CHARS_IN_CHAPTER) + " characters long in total, " +
+                "suitable for a Include a mix of dialogue, description, and action to bring the story to life. The " +
+                "hard, challenging or advanced words should be highlighted in the chapter by using the following " +
+                "format: <b>hard word</b>.")
+
+        # Now, you only need to write " + str(
+        #     OUTPUT_CHAR_PER_PROMPT) + " characters for now.")
+        #
+        # if len(chapter_text) == 0:
+        #     prompt += "You don't need to finish the chapter in one go. We will finish it later."
+        # elif len(chapter_text) < CHARS_IN_CHAPTER + OUTPUT_CHAR_PER_PROMPT:
+        #     prompt += (
+        #             "So far you have written this, please continue the story: " + chapter_text + "." +
+        #             "You don't need to finish the chapter in one go. We will finish it later."
+        #     )
+        # else:
+        #     prompt += (
+        #             "So far you have written this, please continue the story: " + chapter_text + "." +
+        #             "Please write an ending to the story."
+        #     )
+
+        # Sending request to OpenAI GPT-4
+    client = instructor.patch(OpenAI())
+    chapter_content: ChapterContent = client.chat.completions.create(
+            model="gpt-4",
+            response_model=ChapterContent,
+            messages=[
+                {"role": "user", "content": prompt},
+            ],
+            max_retries=2,
+        )
+
+    chapter_text += chapter_content.content
 
     # Sending request to OpenAI GPT-4
+    last_prompt = ("Create a title of a chapter in a book. Additionally, you should provide a detailed " +
+                   "description for an image prompt that captures the essence of the chapter. This description " +
+                   "will be used to create the cover art of the chapter. Additionally, all words in bold (<b>hard word</b>) should " +
+                   "be explained hard_words list. Lastly there should also be a summary of the chapter. The text " +
+                   "is as follows: " + chapter_text)
     client = instructor.patch(OpenAI())
-    chapter: Chapter = client.chat.completions.create(
+    chapter_misc: ChapterMisc = client.chat.completions.create(
         model="gpt-4",
-        response_model=Chapter,
+        response_model=ChapterMisc,
         messages=[
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": last_prompt},
         ],
         max_retries=2,
     )
+
+    chapter = Chapter(title=chapter_misc.title, chapter_image_prompt=chapter_misc.chapter_image_prompt,
+                      hard_words=chapter_misc.hard_words, content=chapter_text)
 
     return chapter
 

@@ -2,19 +2,20 @@ import argparse
 import generate
 import book
 from PIL import Image as PILImage
+import os
 
 def main():
     parser = argparse.ArgumentParser(description='Create your own story using gpt-4!')
     parser.add_argument('plot', type=str, help='The content of the story')
     parser.add_argument('language_level', type=str, default="A1", help='The content of the story')
-    parser.add_argument('length', type=int, default=3000, help='The content of the story')
+    parser.add_argument('num_chapters', type=int, default=2, help='The number of chapters')
     parser.add_argument('author', type=str, default="", help='Name of the author')
-    parser.add_argument('outpath', type=str, default="./data", help='Name of the author')
+    parser.add_argument('outpath', type=str, default="./data", help='Path to save the story')
 
     args = parser.parse_args()
 
     print("------------Generate Story Outline------------")
-    story = generate.story_outline(args.plot, args.length, args.language_level)
+    story = generate.story_outline(args.plot, args.num_chapters, args.language_level)
     generate.save_to_file(story, args.outpath + "story.json")
     #story = generate.load_from_file(generate.Outline, args.outpath + "story.json")
 
@@ -22,7 +23,7 @@ def main():
     print("Short Summary: " + story.short_summary)
     print("Number of chapters: " + str(len(story.chapter_outlines)))
     cover_image = generate.create_image(story.cover_image_prompt)
-    cover_image = generate.add_text(cover_image, story.title, args.outpath + "SourceSansPro-Black.ttf")
+    cover_image = generate.add_text(cover_image, story.title, os.path.join(args.outpath, "SourceSansPro-Black.ttf"))
     cover_image.save(args.outpath + "cover.png")
     #cover_image = PILImage.open(args.outpath + "cover.png")
 
