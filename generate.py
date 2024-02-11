@@ -48,6 +48,7 @@ def story_outline(story, num_chapters, language_level):
 
 
 class ChapterContent(BaseModel):
+    title: str = Field(..., description="Der Titel des Kapitels")
     content: str = Field(..., description="Der Inhalt des Kapitels in html format")
 
 
@@ -60,7 +61,7 @@ class ChapterMisc(BaseModel):
 class Chapter(BaseModel):
     title: str = Field(..., description="Der Titel des Kapitels")
     chapter_image_prompt: str = Field(..., description="Aufforderung zur Erstellung des Kapitelbildes")
-    hard_words: list[str] = Field(..., description="Die schwierigen Wörter des Kapitels und ihre Erläuterung.")
+    hard_words: list[str] = Field(..., description="Die 15 schwierigsten Wörter des Kapitels und ihre Erläuterung.")
     content: str = Field(..., description="Der Inhalt des Kapitels in html format")
 
 
@@ -71,7 +72,7 @@ def write_chapter(content, level_of_language):
                 "The book you are writing is for people learning German at the " + level_of_language + " level. " +
                 "Hence, you should use words and grammar so the reader understands and also that helps the reader " +
                 "improve their german. The chapter " +
-                "should be engaging and approximately " + str(CHARS_IN_CHAPTER//5) + " characters long in total, " +
+                "should be engaging and approximately " + str(CHARS_IN_CHAPTER) + " characters long in total, " +
                 "suitable for a Include a mix of dialogue, description, and action to bring the story to life. The " +
                 "hard, challenging or advanced words should be highlighted in the chapter by using the following " +
                 "format: <b>hard word</b>.")
