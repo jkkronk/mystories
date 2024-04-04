@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 import json
 
 CHARS_IN_CHAPTER = 10000
-OUTPUT_CHAR_PER_PROMPT = 3000
+OUTPUT_CHAR_PER_PROMPT = 5000
 
 
 class Outline(BaseModel):
@@ -68,34 +68,38 @@ class Chapter(BaseModel):
 def write_chapter(content, level_of_language):
     chapter_text = ""
     prompt = (
-                "Write a chapter in German based on the following outline: " + content + ". " +
-                "The book you are writing is for people learning German at the " + level_of_language + " level. " +
-                "Hence, you should use words and grammar so the reader understands and also that helps the reader " +
-                "improve their german. The chapter " +
-                "should be engaging and approximately " + str(CHARS_IN_CHAPTER) + " characters long in total, " +
-                "suitable for a Include a mix of dialogue, description, and action to bring the story to life. The " +
-                "hard, challenging or advanced words should be highlighted in the chapter by using the following " +
-                "format: <b>hard word</b>.")
+            "Write a chapter in German based on the following outline: " + content + ". " +
+            "The book you are writing is for people learning German at the " + level_of_language + " level. " +
+            "Hence, you should use words and grammar so the reader understands and also that helps the reader " +
+            "improve their german. The chapter " +
+            "should be engaging and approximately " + str(CHARS_IN_CHAPTER) + " characters long in total, " +
+            "suitable for a Include a mix of dialogue, description, and action to bring the story to life. The " +
+            "hard, challenging or advanced words should be highlighted in the chapter by using the following " +
+            "format: <b>hard word</b>.")
 
-        # Now, you only need to write " + str(
-        #     OUTPUT_CHAR_PER_PROMPT) + " characters for now.")
-        #
-        # if len(chapter_text) == 0:
-        #     prompt += "You don't need to finish the chapter in one go. We will finish it later."
-        # elif len(chapter_text) < CHARS_IN_CHAPTER + OUTPUT_CHAR_PER_PROMPT:
-        #     prompt += (
-        #             "So far you have written this, please continue the story: " + chapter_text + "." +
-        #             "You don't need to finish the chapter in one go. We will finish it later."
-        #     )
-        # else:
-        #     prompt += (
-        #             "So far you have written this, please continue the story: " + chapter_text + "." +
-        #             "Please write an ending to the story."
-        #     )
+    while len(chapter_text) < CHARS_IN_CHAPTER:
+        if len(chapter_text) == 0:
+            prompt += (
+                        "You don't need to finish the chapter in one go. We will finish it later. Please write the "
+                        "first" +
+                        str(OUTPUT_CHAR_PER_PROMPT) + " characters of the chapter."
+                        )
+        elif len(chapter_text) < CHARS_IN_CHAPTER:
+            prompt += (
+                    "You don't need to finish the chapter in one go. We will finish it later. Please write the first" +
+                    str(OUTPUT_CHAR_PER_PROMPT) + " characters of the chapter."
+                                                  "So far you have written this, please continue the story: " +
+                    chapter_text + "."
+            )
+        else:
+            prompt = (
+                    "Finish the chapter in one go. So far you have written this, please continue the story: " +
+                    chapter_text + "."
+            )
 
         # Sending request to OpenAI GPT-4
-    client = instructor.patch(OpenAI())
-    chapter_content: ChapterContent = client.chat.completions.create(
+        client = instructor.patch(OpenAI())
+        chapter_content: ChapterContent = client.chat.completions.create(
             model="gpt-4",
             response_model=ChapterContent,
             messages=[
@@ -104,12 +108,13 @@ def write_chapter(content, level_of_language):
             max_retries=2,
         )
 
-    chapter_text += chapter_content.content
+        chapter_text += chapter_content.content
 
     # Sending request to OpenAI GPT-4
     last_prompt = ("Create a title of a chapter in a book. Additionally, you should provide a detailed " +
                    "description for an image prompt that captures the essence of the chapter. This description " +
-                   "will be used to create the cover art of the chapter. Additionally, all words in bold (<b>hard word</b>) should " +
+                   "will be used to create the cover art of the chapter. Additionally, all words in bold (<b>hard "
+                   "word</b>) should " +
                    "be explained hard_words list. Lastly there should also be a summary of the chapter. The text " +
                    "is as follows: " + chapter_text)
     client = instructor.patch(OpenAI())
